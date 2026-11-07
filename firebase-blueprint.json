@@ -1,0 +1,128 @@
+{
+  "entities": {
+    "Expense": {
+      "title": "Expense",
+      "description": "Represents an individual construction or renovation expense (Material or Mão de Obra).",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Description of the expense item or work performed",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "amount": {
+          "type": "number",
+          "description": "Monetary cost in Brazilian Reais (R$)"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category of the expense: Material or Mão de Obra",
+          "enum": ["material", "mao_de_obra"]
+        },
+        "date": {
+          "type": "string",
+          "description": "Date formatted as DD/MM/YYYY or ISO timestamp",
+          "maxLength": 30
+        },
+        "receiptUrl": {
+          "type": "string",
+          "description": "Optional base64 image or URL of receipt/voucher",
+          "maxLength": 600000
+        },
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the owner",
+          "maxLength": 128
+        },
+        "obraId": {
+          "type": "string",
+          "description": "Identifier of the construction project (obra) this expense belongs to",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["description", "amount", "category", "date", "userId", "createdAt"]
+    },
+    "Obra": {
+      "title": "Obra",
+      "description": "Represents a construction project or site managed by the user.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identifier of the construction project",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "description": "Name or location of the construction project",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "budgetLimit": {
+          "type": "number",
+          "description": "Optional budget ceiling for this specific obra"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the owner",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["name", "userId", "createdAt"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile document storing basic account preferences.",
+      "type": "object",
+      "properties": {
+        "displayName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 150
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": ["email", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Subcollection of expenses belonging strictly to the authenticated user."
+    },
+    "/users/{userId}/obras/{obraId}": {
+      "schema": "Obra",
+      "description": "Subcollection of construction projects/obras belonging strictly to the authenticated user."
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile metadata document."
+    }
+  }
+}

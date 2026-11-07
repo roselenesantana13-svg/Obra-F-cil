@@ -1,0 +1,108 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidExpense(data, userId) {
+      return data.description is string &&
+        data.description.size() >= 1 &&
+        data.description.size() <= 300 &&
+        data.amount is number &&
+        data.amount > 0 &&
+        (data.category == 'material' || data.category == 'mao_de_obra') &&
+        data.date is string &&
+        data.date.size() >= 1 &&
+        data.date.size() <= 30 &&
+        data.userId is string &&
+        data.userId == userId &&
+        data.userId == request.auth.uid &&
+        data.createdAt is string &&
+        data.createdAt.size() <= 50 &&
+        (!('obraId' in data) || (data.obraId is string && data.obraId.size() <= 128)) &&
+        (!('receiptUrl' in data) || (data.receiptUrl is string && data.receiptUrl.size() <= 600000)) &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    function isValidObra(data, userId) {
+      return data.name is string &&
+        data.name.size() >= 1 &&
+        data.name.size() <= 100 &&
+        data.userId is string &&
+        data.userId == userId &&
+        data.userId == request.auth.uid &&
+        data.createdAt is string &&
+        data.createdAt.size() <= 50 &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
+        (!('budgetLimit' in data) || (data.budgetLimit is number && data.budgetLimit >= 0)) &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create, update: if isOwner(userId) &&
+        isValidId(userId) &&
+        incoming().email is string &&
+        incoming().email.size() <= 150 &&
+        incoming().createdAt is string;
+
+      match /expenses/{expenseId} {
+        allow get: if isOwner(userId) && isValidId(expenseId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+          isValidId(expenseId) &&
+          incoming().keys().hasAll(['description', 'amount', 'category', 'date', 'userId', 'createdAt']) &&
+          incoming().keys().hasOnly(['description', 'amount', 'category', 'date', 'userId', 'createdAt', 'obraId', 'receiptUrl', 'updatedAt']) &&
+          isValidExpense(incoming(), userId);
+        allow update: if isOwner(userId) &&
+          isValidId(expenseId) &&
+          isValidExpense(incoming(), userId) &&
+          incoming().userId == existing().userId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['description', 'amount', 'category', 'date', 'obraId', 'receiptUrl', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(expenseId);
+      }
+
+      match /obras/{obraId} {
+        allow get: if isOwner(userId) && isValidId(obraId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+          isValidId(obraId) &&
+          incoming().keys().hasAll(['name', 'userId', 'createdAt']) &&
+          incoming().keys().hasOnly(['id', 'name', 'userId', 'createdAt', 'budgetLimit', 'updatedAt']) &&
+          isValidObra(incoming(), userId);
+        allow update: if isOwner(userId) &&
+          isValidId(obraId) &&
+          isValidObra(incoming(), userId) &&
+          incoming().userId == existing().userId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['id', 'name', 'budgetLimit', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(obraId);
+      }
+    }
+  }
+}

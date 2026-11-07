@@ -1,0 +1,6 @@
+{
+  "name": "Obra Fácil",
+  "description": "Controle de Gastos Simplificado para Obras e Reformas com Firebase em tempo real",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
